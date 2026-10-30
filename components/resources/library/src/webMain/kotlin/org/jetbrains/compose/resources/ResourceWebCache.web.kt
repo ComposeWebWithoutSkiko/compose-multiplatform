@@ -33,10 +33,10 @@ internal object ResourceWebCache {
     // A mutex to avoid multiple cache reset
     private val resetMutex = Mutex()
 
-    private val supportsCacheApi: Boolean by lazy { supportsCacheApi() && isCacheableProtocol() }
+    private val supportsCacheApi: Boolean by lazy { supportsCacheApi() }
 
     suspend fun load(path: String, onNoCacheHit: suspend (path: String) -> Response): Response {
-        if (!supportsCacheApi) return onNoCacheHit(path)
+        if (!supportsCacheApi || !isCacheableProtocol(path)) return onNoCacheHit(path)
 
         if (isNewSession()) {
             // There can be many load requests, and there must be 1 reset max. Therefore, using `resetMutex`.
@@ -86,4 +86,4 @@ private fun supportsCacheApi(): Boolean = js("Boolean(window.caches)")
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Cache/put
 // Ensure the protocol of the request is http / https - edge cases like "vscode-webview:" are not supported by CacheStorage
-private fun isCacheableProtocol(): Boolean = window.location.protocol.startsWith("http")
+private fun isCacheableProtocol(path: String): Boolean = resolveUrl(path).protocol.startsWith("http")

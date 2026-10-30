@@ -39,7 +39,11 @@ class ResourceLoadingFailureTest {
             return delegate.readPart(path, offset, size)
         }
 
-        override fun getUri(path: String): String = delegate.getUri(path)
+        // The browser loads images and fonts from here.
+        override fun getUri(path: String): String {
+            attempted.add(path)
+            return delegate.getUri(if (path == failingPath) "missing/$path" else path)
+        }
     }
 
     @Test
@@ -81,6 +85,30 @@ class ResourceLoadingFailureTest {
         waitResources()
 
         assertTrue("1.png" in failingReader.attemptedPaths, "Loading should have been attempted")
+    }
+
+    @Test
+    fun testDrawableThatCannotBeDecodedDoesNotCrash() = clearResourceCachesAndRunUiTest {
+        // The browser fails with an error of its own, which isn't a Kotlin exception.
+        val reader = object : ResourceReader by DefaultResourceReader {
+            override fun getUri(path: String): String = DefaultResourceReader.getUri("strings.cvr")
+        }
+        var text = "<initial>"
+
+        setContent {
+            CompositionLocalProvider(
+                LocalResourceReader provides reader,
+                LocalComposeEnvironment provides TestComposeEnvironment
+            ) {
+                Image(painterResource(TestDrawableResource("1.png")), null)
+                text = stringResource(TestStringResource("app_name"))
+                Text(text)
+            }
+        }
+
+        waitResources()
+
+        assertEquals("Compose Resources App", text, "The rest of the UI must keep working")
     }
 
     /**

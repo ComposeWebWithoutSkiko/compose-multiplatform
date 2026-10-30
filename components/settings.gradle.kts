@@ -41,7 +41,8 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         create("libs") {
-            version("compose", extra["compose.version"].toString())
+            version("compose", extra["compose.libraries.version"].toString())
+            version("material3", extra["compose.libraries.version"].toString())
         }
     }
 }

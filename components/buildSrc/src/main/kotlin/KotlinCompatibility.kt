@@ -43,6 +43,11 @@ fun Project.configureKotlinCompatibility() {
                     api("org.jetbrains.kotlin:kotlin-stdlib:$currentVersion")
                 }
             }
+            compilations.matching { it.name == "test" }.configureEach {
+                defaultSourceSet.dependencies {
+                    implementation("org.jetbrains.kotlin:kotlin-test:$currentVersion")
+                }
+            }
         }
     }
 }

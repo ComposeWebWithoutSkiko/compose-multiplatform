@@ -7,6 +7,8 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import kotlinx.browser.document
+import org.w3c.dom.url.URL
 
 /**
  * Represents the configuration object for web resources.
@@ -51,19 +53,16 @@ fun configureWebResources(configure: WebResourcesConfiguration.() -> Unit) {
     WebResourcesConfiguration.configure()
 }
 
-internal fun getResourceUrl(windowOrigin: String, windowPathname: String, resourcePath: String): String {
-    val path = WebResourcesConfiguration.getResourcePath(resourcePath)
-    return when {
-        path.startsWith("/") -> windowOrigin + path
-        path.startsWith("http://") || path.startsWith("https://") -> path
-        else -> windowOrigin + windowPathname + path
-    }
-}
+internal fun getResourceUrl(resourcePath: String): String =
+    resolveUrl(WebResourcesConfiguration.getResourcePath(resourcePath)).href
+
+/** The URL that `fetch` loads [path] from. */
+internal fun resolveUrl(path: String): URL = URL(path, document.baseURI)
 
 /**
  * Preloads a font resource and provides a [State] containing the loaded [Font] or `null` if not yet loaded.
  *
- * Internally, it reads font bytes, converts them to a [Font] object, and caches the result, speeding up future
+ * Internally, it loads the font file, converts it to a [Font] object, and caches the result, speeding up future
  * accesses to the same font resource when using @Composable Font function.
  *
  * **Usage Example:**
@@ -111,7 +110,7 @@ fun preloadFont(
 /**
  * Preloads an image resource and provides a [State] containing the loaded [ImageBitmap] or `null` if not yet loaded.
  *
- * Internally, it reads the resource bytes, converts them to a [ImageBitmap] object, and caches the result,
+ * Internally, it loads the resource file, converts it to a [ImageBitmap] object, and caches the result,
  * speeding up future accesses to the same resource when using @Composable [imageResource] or [painterResource] functions.
  *
  * **Usage Example:**
@@ -154,7 +153,7 @@ fun preloadImageBitmap(
 /**
  * Preloads a vector image resource and provides a [State] containing the loaded [ImageVector] or `null` if not yet loaded.
  *
- * Internally, it reads the resource bytes, converts them to a [ImageVector] object, and caches the result,
+ * Internally, it loads the resource file, converts it to a [ImageVector] object, and caches the result,
  * speeding up future accesses to the same resource when using @Composable [vectorResource] or [painterResource] functions.
  *
  * **Usage Example:**

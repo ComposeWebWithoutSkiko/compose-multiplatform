@@ -6,8 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.platform.PlatformFont
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -64,14 +64,14 @@ class FontCacheTest {
 
         val testResourceReader = TestFontResourceReplacementReader()
         var res by mutableStateOf(TestFontResource(font1))
-        var fontIdentity = ""
+        var currentFont: Font? = null
         setContent {
             CompositionLocalProvider(
                 LocalResourceReader provides testResourceReader,
                 LocalComposeEnvironment provides TestComposeEnvironment
             ) {
                 val font = Font(res)
-                fontIdentity = (font as PlatformFont).identity
+                currentFont = font
                 Text(
                     fontFamily = FontFamily(font),
                     text = "Hello"
@@ -79,14 +79,14 @@ class FontCacheTest {
             }
         }
         waitResources()
-        val id1 = fontIdentity
+        val loaded1 = currentFont
 
         res = TestFontResource(font2)
         waitResources()
 
-        val id2 = fontIdentity
+        val loaded2 = currentFont
 
-        assertNotEquals(id1, id2)
+        assertNotEquals(loaded1, loaded2)
 
         ResourceCaches.clear()
 
@@ -94,8 +94,8 @@ class FontCacheTest {
         res = TestFontResource(font1)
         waitResources()
 
-        val id3 = fontIdentity
-        assertNotEquals(id1, id3)
+        val loaded3 = currentFont
+        assertNotEquals(loaded1, loaded3)
     }
 
     internal class TestFontResourceReplacementReader : ResourceReader {
@@ -114,8 +114,9 @@ class FontCacheTest {
             return DefaultResourceReader.readPart(path, offset, size)
         }
 
+        // On the web, the browser loads fonts from here.
         override fun getUri(path: String): String {
-            return DefaultResourceReader.getUri(path)
+            return DefaultResourceReader.getUri(nextPath ?: path)
         }
     }
 }

@@ -74,14 +74,16 @@ kotlin {
             }
         }
 
-        //          common
-        //       ┌────┴────┐
-        //    skiko       blocking
-        //      │      ┌─────┴────────┐
-        //  ┌───┴───┬──│────────┐     │
-        //  │      native       │ jvmAndAndroid
-        //  │    ┌───┴───┐      │   ┌───┴───┐
-        // web   ios    macos   desktop    android
+        //             common
+        //       ┌───────┴────────┐
+        //   nonAndroid        blocking
+        //   ┌───┴───┐       ┌─────┴────────┐
+        //   │     skiko     │              │
+        //   │    ┌───┴──┬───│────┐         │
+        //   │    │     native    │    jvmAndAndroid
+        //   │    │   ┌───┴───┐   │     ┌───┴───┐
+        //  web   │  ios    macos │     │       │
+        //        └───────────────┴─ desktop   android
 
         val commonMain by getting {
             dependencies {
@@ -104,11 +106,14 @@ kotlin {
         val blockingTest by creating {
             dependsOn(commonTest)
         }
-        val skikoMain by creating {
+        val nonAndroidMain by creating {
             dependsOn(commonMain)
         }
-        val skikoTest by creating {
+        val nonAndroidTest by creating {
             dependsOn(commonTest)
+        }
+        val skikoMain by creating {
+            dependsOn(nonAndroidMain)
         }
         val jvmAndAndroidMain by creating {
             dependsOn(blockingMain)
@@ -121,7 +126,7 @@ kotlin {
             dependsOn(jvmAndAndroidMain)
         }
         val desktopTest by getting {
-            dependsOn(skikoTest)
+            dependsOn(nonAndroidTest)
             dependsOn(jvmAndAndroidTest)
             dependencies {
                 implementation(compose.desktop.currentOs)
@@ -147,17 +152,17 @@ kotlin {
             dependsOn(blockingMain)
         }
         val nativeTest by getting {
-            dependsOn(skikoTest)
+            dependsOn(nonAndroidTest)
             dependsOn(blockingTest)
         }
         val webMain by getting {
-            dependsOn(skikoMain)
+            dependsOn(nonAndroidMain)
             dependencies {
                 implementation(libs.kotlinx.browser)
             }
         }
         val webTest by getting {
-            dependsOn(skikoTest)
+            dependsOn(nonAndroidTest)
         }
     }
 }

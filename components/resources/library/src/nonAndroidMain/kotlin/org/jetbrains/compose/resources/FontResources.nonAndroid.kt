@@ -1,24 +1,20 @@
+@file:JvmName("FontResources_skikoKt")
+
 package org.jetbrains.compose.resources
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.platform.Font
 import androidx.compose.ui.text.platform.SystemFont
 import androidx.compose.ui.unit.Density
+import kotlin.jvm.JvmName
 
 private const val defaultFontIdentity = "org.jetbrains.compose.resources.defaultFont"
 
 // It's mainly necessary for the web.
 // A meaningful default font is used while a requested font is being loaded asynchronously.
-// Check out skiko for the default font details - it's bundled into skiko.wasm
-// https://github.com/JetBrains/skiko/blob/master/skiko/src/webMain/cpp/Roboto-Regular.ttf.cc
-//
-// Notes:
-// - On the web, the default font provided by skiko has limited glyph coverage.
-// When encountering unknown glyphs, it will display '�' or tofu (empty box) characters (for example, for emojis).
-// - the default font doesn't support font styles and weights customization.
+// No font has this name, so the text uses the default font of the platform: of the browser on the web.
 @OptIn(ExperimentalTextApi::class)
 private val defaultFont: Font = SystemFont(defaultFontIdentity)
 
@@ -28,8 +24,13 @@ internal val Font.isDefault: Boolean
     @OptIn(ExperimentalTextApi::class)
     get() = (this as? SystemFont)?.identity == defaultFontIdentity
 
-
-private fun ByteArray.footprint() = "[$size:${lastOrNull()?.toInt()}]"
+internal expect suspend fun ResourceReader.readFont(
+    path: String,
+    identity: String,
+    weight: FontWeight,
+    style: FontStyle,
+    variationSettings: FontVariation.Settings
+): Font
 
 @Deprecated(
     message = "Use the new Font function with variationSettings instead.",
@@ -42,8 +43,7 @@ actual fun Font(resource: FontResource, weight: FontWeight, style: FontStyle): F
         val path = resource.getResourceItemByEnvironment(env).path
         val key = "$path:$weight:$style"
         fontCache.getOrLoad(key) {
-            val fontBytes = resourceReader.read(path)
-            Font("$path${fontBytes.footprint()}", fontBytes, weight, style)
+            resourceReader.readFont(path, path, weight, style, FontVariation.Settings())
         }
     }
     return fontFile
@@ -60,8 +60,7 @@ actual fun Font(
         val path = resource.getResourceItemByEnvironment(env).path
         val key = "$path:$weight:$style:${variationSettings.getCacheKey()}"
         fontCache.getOrLoad(key) {
-            val fontBytes = resourceReader.read(path)
-            Font("$key${fontBytes.footprint()}", fontBytes, weight, style, variationSettings)
+            resourceReader.readFont(path, key, weight, style, variationSettings)
         }
     }
     return fontFile

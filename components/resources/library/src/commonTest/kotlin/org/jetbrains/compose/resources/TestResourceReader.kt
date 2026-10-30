@@ -14,7 +14,9 @@ internal class TestResourceReader : ResourceReader {
         return DefaultResourceReader.readPart(path, offset, size)
     }
 
+    // On the web, the browser loads images and fonts from here.
     override fun getUri(path: String): String {
+        readPathsList.add(path)
         return DefaultResourceReader.getUri(path)
     }
 }

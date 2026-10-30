@@ -34,6 +34,8 @@ fun getResourceUri(path: String): String = DefaultResourceReader.getUri(path)
  * - On Android and JVM, implementations must not switch to the Main dispatcher
  *   (e.g. via `withContext(Dispatchers.Main)`) as this can cause a deadlock!
  *   See: `DeadlockReproducer.kt`
+ * - On Web, the browser loads images, SVG and XML files and fonts itself from [getUri], which must
+ *   be a URL it can fetch: their bytes don't go through [read].
  */
 @ExperimentalResourceApi
 interface ResourceReader {

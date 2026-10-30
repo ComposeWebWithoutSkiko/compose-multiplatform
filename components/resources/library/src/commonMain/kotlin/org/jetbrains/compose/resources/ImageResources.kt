@@ -68,8 +68,8 @@ fun imageResource(resource: DrawableResource): ImageBitmap {
         val resourceDensity = resourceDensityQualifier?.dpi ?: DensityQualifier.MDPI.dpi
         val screenDensity = resourceEnvironment.density.dpi
         val path = item.path
-        val cached = loadImage(path, "$path-${screenDensity}dpi", resourceReader) {
-            ImageCache.Bitmap(it.toImageBitmap(resourceDensity, screenDensity))
+        val cached = imageCache.getOrLoad("$path-${screenDensity}dpi") {
+            ImageCache.Bitmap(resourceReader.readBitmap(path, resourceDensity, screenDensity))
         } as ImageCache.Bitmap
         cached.bitmap
     }
@@ -95,8 +95,8 @@ fun vectorResource(resource: DrawableResource): ImageVector {
     val density = LocalDensity.current
     val imageVector by rememberResourceState(resource, resourceReader, density, { emptyImageVector }) { env ->
         val path = resource.getResourceItemByEnvironment(env).path
-        val cached = loadImage(path, path, resourceReader) {
-            ImageCache.Vector(it.toXmlElement().toImageVector(density))
+        val cached = imageCache.getOrLoad(path) {
+            ImageCache.Vector(resourceReader.readXmlElement(path).toImageVector(density))
         } as ImageCache.Vector
         cached.vector
     }
@@ -115,8 +115,8 @@ private fun svgPainter(resource: DrawableResource): Painter {
     val density = LocalDensity.current
     val svgPainter by rememberResourceState(resource, resourceReader, density, { emptySvgPainter }) { env ->
         val path = resource.getResourceItemByEnvironment(env).path
-        val cached = loadImage(path, path, resourceReader) {
-            ImageCache.Svg(it.toSvgElement().toSvgPainter(density))
+        val cached = imageCache.getOrLoad(path) {
+            ImageCache.Svg(resourceReader.readSvgPainter(path, density))
         } as ImageCache.Svg
         cached.painter
     }
@@ -142,6 +142,15 @@ internal expect fun ByteArray.toImageBitmap(resourceDensity: Int, targetDensity:
 internal expect fun ByteArray.toXmlElement(): Element
 internal expect fun ByteArray.toSvgElement(): SvgElement
 
+// On the web the browser reads and decodes the resource file itself: its bytes don't reach Kotlin.
+internal expect suspend fun ResourceReader.readBitmap(
+    path: String,
+    resourceDensity: Int,
+    targetDensity: Int
+): ImageBitmap
+internal expect suspend fun ResourceReader.readXmlElement(path: String): Element
+internal expect suspend fun ResourceReader.readSvgPainter(path: String, density: Density): Painter
+
 private sealed interface ImageCache {
     class Bitmap(val bitmap: ImageBitmap) : ImageCache
     class Vector(val vector: ImageVector) : ImageCache
@@ -149,16 +158,3 @@ private sealed interface ImageCache {
 }
 
 private val imageCache = AsyncCache<String, ImageCache>()
-
-internal expect suspend fun webYield()
-
-private suspend fun loadImage(
-    path: String,
-    cacheKey: String,
-    resourceReader: ResourceReader,
-    decode: (ByteArray) -> ImageCache
-): ImageCache = imageCache.getOrLoad(cacheKey) {
-    val bytes = resourceReader.read(path)
-    webYield()
-    decode(bytes)
-}
