@@ -32,6 +32,11 @@ dependencyResolutionManagement {
         if (extra["compose.useMavenLocal"] == "true") {
             mavenLocal() // mavenLocal should be the first to get the correct version of skiko during a local build.
         }
+        maven("https://repo.redlance.org/public") {
+            content {
+                includeVersionByRegex("org\\.jetbrains\\.compose.*", ".*", ".*-webcanvas.*")
+            }
+        }
         google()
         mavenCentral {
             url = uri("https://cache-redirector.jetbrains.com/maven-central")

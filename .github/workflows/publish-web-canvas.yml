@@ -1,0 +1,41 @@
+name: Publish web-canvas
+
+on:
+  push:
+    tags:
+      - '*-webcanvas.*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: components
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: components
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jetbrains'
+          java-version: '21'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Publish the wasmJs artifacts
+        env:
+          VERSION: ${{ github.ref_name }}
+          COMPOSE_REPO_URL: https://repo.redlance.org/public
+          COMPOSE_REPO_USERNAME: ${{ secrets.REDLANCE_MAVEN_USERNAME }}
+          COMPOSE_REPO_KEY: ${{ secrets.REDLANCE_MAVEN_TOKEN }}
+        run: >
+          ./gradlew --no-configuration-cache
+          :resources:library:publishWasmJsPublicationToComposeRepoRepository
+          -Pdeploy.version="$VERSION"
